@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Para mi niña</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg-pink: #fce4ec; --deep-red: #c2185b; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-pink);
+            font-family: 'Quicksand', sans-serif;
+            overflow: hidden; height: 100vh; width: 100vw;
+            touch-action: manipulation; user-select: none;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 1;
+        }
+
+        .screen.active { opacity: 1; pointer-events: all; z-index: 10; }
+
+        .heart-btn-container {
+            position: relative; z-index: 99999 !important;
+            cursor: pointer; text-align: center;
+        }
+
+        .main-heart {
+            font-size: 6rem; color: #d32f2f;
+            filter: drop-shadow(0 0 15px rgba(211,47,47,0.4));
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        #treeCanvas {
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 100%; pointer-events: none !important;
+            opacity: 0; transition: opacity 2s; z-index: 5;
+        }
+
+        .date-text {
+            position: absolute; top: 15%; font-family: 'Dancing Script'; 
+            font-size: 1.8rem; color: var(--deep-red); text-align: center;
+            opacity: 0; transition: opacity 1s; z-index: 20;
+        }
+
+        .next-arrow {
+            position: absolute; bottom: 30px; right: 20px;
+            font-size: 2.5rem; color: white; background: var(--deep-red);
+            width: 55px; height: 55px; border-radius: 50%;
+            display: none; justify-content: center; align-items: center;
+            z-index: 100; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* PANTALLA 2 */
+        .rain-bg { position: absolute; width: 100%; height: 100%; background: #90a4ae; opacity: 0; transition: 1s; pointer-events: none; overflow: hidden; }
+        .drop { position: absolute; background: #fff; width: 2px; height: 20px; top: -25px; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(110vh); } }
+
+        /* PANTALLA 3 - VELAS Y FONDO */
+        #s3 { background: #000; transition: background-color 0.5s ease; }
+        .candles-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; width: 90%; z-index: 20; }
+        .candle { height: 45px; background: #eee; border-radius: 3px; position: relative; cursor: pointer; }
+        .flame { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 12px; height: 18px; background: radial-gradient(#fff, #ff9800); border-radius: 50%; opacity: 0; box-shadow: 0 0 10px orange; transition: 0.3s; }
+        .lit .flame { opacity: 1; animation: flicker 0.1s infinite alternate; }
+        @keyframes flicker { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+
+        /* PANTALLA 4 */
+        .toast { position: absolute; top: 10%; background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.5s; z-index: 1000; pointer-events: none; }
+        .heart-swipe { position: absolute; font-size: 3.5rem; transition: transform 0.5s, opacity 0.4s; cursor: pointer; z-index: 50; }
+        .final-msg-box { background: white; padding: 25px; border-radius: 20px; width: 80%; text-align: center; transform: scale(0); transition: 0.5s; border: 3px solid var(--deep-red); z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .final-msg-box.show { transform: scale(1); }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop preload="auto" src="https://www.chosic.com/wp-content/uploads/2021/04/And-So-It-Begins-Inspired-By-Crush-Sometimes.mp3"></audio>
+    <audio id="rainSound" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/02/16/audio_f5351a37c9.mp3"></audio>
+
+    <div class="screen active" id="s1">
+        <h2 id="title1" style="font-family:'Dancing Script'; color:#ad1457;">Para mi niña</h2>
+        <div class="heart-btn-container" id="mainTrigger">
+            <div class="main-heart">❤️</div>
+            <div style="color:#ad1457; font-weight:bold;">Tócame</div>
+        </div>
+        <div class="date-text" id="dateText">
+            Juntos desde el<br>18 de Enero de 2026<br>
+            <span id="daysCount"></span>
+        </div>
+        <canvas id="treeCanvas"></canvas>
+        <div class="next-arrow" id="arrow1" onclick="goNext(2)">➔</div>
+    </div>
+
+    <div class="screen" id="s2">
+        <div class="rain-bg" id="rainBg"></div>
+        <div class="riddle-box" id="rBox" style="background:white; padding:20px; border-radius:15px; text-align:center; z-index:50; width:80%;">
+            <h3 style="font-family:'Dancing Script';">Completa la frase:</h3>
+            <p>"Parece que va a..."</p>
+            <input type="text" id="rainInput" style="width:80%; padding:10px; text-align:center;">
+            <br><br>
+            <button onclick="checkRain()" style="padding:10px 20px; background:var(--deep-red); color:white; border:none; border-radius:20px;">Confirmar</button>
+        </div>
+        <div class="next-arrow" id="arrow2" onclick="goNext(3)">➔</div>
+    </div>
+
+    <div class="screen" id="s3">
+        <h2 id="wallText" style="font-family:'Dancing Script'; color:white; opacity:0.3; text-align:center; margin-bottom: 20px;">Te amo mi niña</h2>
+        <div class="candles-grid" id="candlesArea"></div>
+        <div class="next-arrow" id="arrow3" onclick="goNext(4)">➔</div>
+    </div>
+
+    <div class="screen" id="s4">
+        <div class="toast" id="toastMsg"></div>
+        <div id="heartsArea" style="width:100%; height:100%; position:absolute;"></div>
+        <div class="final-msg-box" id="finalCard">
+            <h1 style="font-family:'Dancing Script'; color:var(--deep-red);">¡Por fin!</h1>
+            <p>Jajaja ya has llegado al final mi niña. No podía ser yo sin picarte un poquito.</p>
+            <p>Solo quería decirte que <b>te echo muchísimo de menos</b> y que te amo muchísimo gordi. ❤️</p>
+        </div>
+    </div>
+
+    <script>
+        const START_DATE = new Date(2026, 0, 18);
+
+        // Arreglo para móviles (toque inmediato)
+      const trigger = document.getElementById('mainTrigger');
+trigger.addEventListener('touchend', startApp, { once: true });
+trigger.addEventListener('click', startApp, { once: true });
+
+
+
+        function startApp() {
+            document.getElementById('bgMusic').play().catch(() => {});
+            trigger.style.display = 'none';
+            document.getElementById('title1').style.display = 'none';
+            drawFractalTree();
+            document.getElementById('treeCanvas').style.opacity = '1';
+            const diff = Math.floor((new Date() - START_DATE) / (1000 * 60 * 60 * 24));
+            document.getElementById('daysCount').innerText = `${diff} días a tu lado`;
+            setTimeout(() => {
+                document.getElementById('dateText').style.opacity = '1';
+                document.getElementById('arrow1').style.display = 'flex';
+            }, 2000);
+        }
+
+        function goNext(n) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('s' + n).classList.add('active');
+            if(n === 3) initCandles();
+            if(n === 4) initFinalHearts();
+        }
+
+        function drawFractalTree() {
+            const canvas = document.getElementById('treeCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            function drawBranch(startX, startY, len, angle, width) {
+                ctx.beginPath(); ctx.save();
+                ctx.strokeStyle = "#5D4037"; ctx.lineWidth = width;
+                ctx.translate(startX, startY); ctx.rotate(angle * Math.PI/180);
+                ctx.moveTo(0,0); ctx.lineTo(0, -len); ctx.stroke();
+                if(len < 10) {
+                    ctx.beginPath(); ctx.fillStyle = "#e91e63";
+                    ctx.arc(0, -len, 4, 0, Math.PI*2); ctx.fill();
+                    ctx.restore(); return;
+                }
+                drawBranch(0, -len, len*0.75, angle - 20, width*0.7);
+                drawBranch(0, -len, len*0.75, angle + 20, width*0.7);
+                ctx.restore();
+            }
+            drawBranch(canvas.width/2, canvas.height, 100, 0, 12);
+        }
+
+        function checkRain() {
+            if(document.getElementById('rainInput').value.toLowerCase().includes('llover')) {
+                document.getElementById('rBox').style.display = 'none';
+                document.getElementById('rainBg').style.opacity = '1';
+                document.getElementById('rainSound').play();
+                const bg = document.getElementById('rainBg');
+                for(let i=0; i<60; i++) {
+                    setTimeout(() => {
+                        const d = document.createElement('div');
+                        d.className = 'drop';
+                        d.style.left = Math.random() * 100 + '%';
+                        d.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+                        bg.appendChild(d);
+                    }, i * 60);
+                }
+                setTimeout(() => document.getElementById('arrow2').style.display = 'flex', 2000);
+            }
+        }
+
+        function initCandles() {
+            const grid = document.getElementById('candlesArea');
+            if(grid.children.length > 0) return;
+            let lit = 0;
+            for(let i=0; i<18; i++) {
+                const c = document.createElement('div');
+                c.className = 'candle';
+                c.innerHTML = '<div class="flame"></div>';
+                c.onclick = function() {
+                    if(!this.classList.contains('lit')) {
+                        this.classList.add('lit'); lit++;
+                        // ACLARAR FONDO PROGRESIVAMENTE
+                        let r = Math.floor((lit/18) * 80); // Tono rojizo
+                        let g = Math.floor((lit/18) * 20); 
+                        let b = Math.floor((lit/18) * 30);
+                        document.getElementById('s3').style.backgroundColor = `rgb(${r},${g},${b})`;
+                        
+                        if(lit === 18) {
+                            document.getElementById('wallText').style.opacity = '1';
+                            document.getElementById('wallText').style.textShadow = "0 0 15px orange";
+                            setTimeout(() => document.getElementById('arrow3').style.display = 'flex', 800);
+                        }
+                    }
+                };
+                grid.appendChild(c);
+            }
+        }
+
+        function initFinalHearts() {
+            const area = document.getElementById('heartsArea');
+            if(area.children.length > 0) return;
+            let gone = 0;
+            for(let i=0; i<20; i++) {
+                const h = document.createElement('div');
+                h.className = 'heart-swipe'; h.innerText = '❤️';
+                h.style.left = (Math.random() * 75 + 5) + '%';
+                h.style.top = (Math.random() * 75 + 5) + '%';
+                
+                const removeH = () => {
+                    h.style.transform = `translate(${Math.random() > 0.5 ? 500 : -500}px, -500px) rotate(90deg)`;
+                    h.style.opacity = '0';
+                    gone++;
+                    
+                    // MENSAJES SEGÚN PROGRESO
+                    const toast = document.getElementById('toastMsg');
+                    if(gone === 6) {
+                        toast.innerText = "¿Ya te has cansado amor? Sigue...";
+                        toast.style.opacity = '1';
+                        setTimeout(()=> toast.style.opacity='0', 2000);
+                    }
+                    if(gone === 12) {
+                        toast.innerText = "¡Venga ya queda menos!";
+                        toast.style.opacity = '1';
+                        setTimeout(()=> toast.style.opacity='0', 2000);
+                    }
+                    if(gone >= 18) document.getElementById('finalCard').classList.add('show');
+                    
+                    setTimeout(() => h.remove(), 500);
+                };
+
+                h.addEventListener('touchstart', (e) => { e.preventDefault(); removeH(); });
+                h.addEventListener('mousedown', removeH);
+                area.appendChild(h);
+            }
+        }
+    </script>
+</body>
+</html>
